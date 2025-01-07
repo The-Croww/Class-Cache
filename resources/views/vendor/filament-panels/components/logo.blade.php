@@ -1,0 +1,1 @@
+<img src="{{asset('images/TV - 1.svg')}}" alt="Class Cache" class="h-16"/>
