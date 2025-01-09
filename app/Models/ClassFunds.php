@@ -8,5 +8,16 @@ use Illuminate\Database\Eloquent\Model;
 class ClassFunds extends Model
 {
     use HasFactory;
-    protected $fillable = [ 'name', 'description', 'amount', 'date'];
+    protected $fillable = [ 
+                'name', 
+                'description', 
+                'amount', 
+                'date',
+                'contibutions',
+                'expenses',
+                'category',
+                'status',
+                'expenses',
+                'balance'
+            ];
 }

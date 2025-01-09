@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ClassFundsResource\Pages;
 use App\Filament\Resources\ClassFundsResource\RelationManagers;
+use App\Filament\Resources\ClassFundsResource\Widgets\ClasssOverview;
 use App\Models\ClassFunds;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -89,6 +90,22 @@ class ClassFundsResource extends Resource
                 ->label('Amount')
                 ->sortable()
                 ->searchable(),
+            Tables\Columns\TextColumn::make('expenses')
+                ->label('Expenses')
+                ->sortable()
+                ->searchable(),
+            Tables\Columns\TextColumn::make('category')
+                ->label('Category')
+                ->sortable()
+                ->searchable(),
+            Tables\Columns\TextColumn::make('status')
+                ->label('Status')
+                ->sortable()
+                ->searchable(),
+            Tables\Columns\TextColumn::make('balance')
+                ->label('Balance')
+                ->sortable()
+                ->searchable(),
             Tables\Columns\TextColumn::make('date')
                 ->label('Date')
                 ->sortable(),
@@ -120,6 +137,13 @@ class ClassFundsResource extends Resource
     {
         return [
             //
+        ];
+    }
+
+    public static function getWidgets(): array
+    {
+        return[
+            ClasssOverview::class,
         ];
     }
 

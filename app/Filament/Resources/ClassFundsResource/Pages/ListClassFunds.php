@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ClassFundsResource\Pages;
 
 use App\Filament\Resources\ClassFundsResource;
+use App\Filament\Resources\ClassFundsResource\Widgets\ClasssOverview;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
@@ -14,6 +15,13 @@ class ListClassFunds extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+        ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return[
+            ClasssOverview::class,
         ];
     }
 }
