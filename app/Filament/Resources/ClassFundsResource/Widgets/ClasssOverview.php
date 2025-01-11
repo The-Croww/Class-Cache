@@ -22,7 +22,7 @@ class ClasssOverview extends BaseWidget
                ->color('success'),
 
            Stat::make('Total Amounts', '₱' . number_format(ClassFunds::sum('amount'), 2)) // Format as currency
-               ->description('Total value of all fines')
+               ->description('Total value of all funds')
                ->descriptionIcon('heroicon-m-banknotes')
                ->color('primary'),
 

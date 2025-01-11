@@ -8,6 +8,13 @@ use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
 class ListClassFunds extends ListRecords
+
+
+
+
+
+
+
 {
     protected static string $resource = ClassFundsResource::class;
 

@@ -9,15 +9,22 @@ class ClassFunds extends Model
 {
     use HasFactory;
     protected $fillable = [ 
+                'class_list_id',
                 'name', 
                 'description', 
                 'amount', 
-                'date',
-                'contibutions',
-                'expenses',
+                'contributions',
                 'category',
+                'date',
                 'status',
-                'expenses',
-                'balance'
             ];
+    protected $casts = [
+        'date' => 'datetime',
+    ];
+            
+
+    public function student()
+    {
+        return $this->belongsTo(ClassList::class, 'class_list_id');
+    }
 }

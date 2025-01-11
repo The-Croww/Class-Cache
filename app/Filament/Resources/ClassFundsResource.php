@@ -3,19 +3,22 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ClassFundsResource\Pages;
-use App\Filament\Resources\ClassFundsResource\RelationManagers;
-use App\Filament\Resources\ClassFundsResource\Widgets\ClasssOverview;
 use App\Models\ClassFunds;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Resources\Pages\CreateRecord;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\BelongsToSelect;
 use Filament\Forms\Components\DatePicker;
+use Barryvdh\DomPDF\Facade as Pdf;
+use Filament\Tables\Actions\ButtonAction;
+
+
 
 
 class ClassFundsResource extends Resource
@@ -29,121 +32,135 @@ class ClassFundsResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
-        ->schema([
-            TextInput::make('name')
-                ->label('Name')
-                ->required()
-                ->placeholder('Enter the name')
-                ->helperText('Provide the name for this entry'),
-    
-            Radio::make('description')
-                ->label('Description Type')
-                ->options([
-                    'class_fund' => 'Class Fund',
-                    'org_fee' => 'Organizational Fee',
-                    'fines' => 'Fines',
-                    'csc_fee' => 'CSC Fee',
-                    'other' => 'Other',
-                ])
-                ->inline() // Display options horizontally for better usability
-                ->required(),
-    
-            TextInput::make('other_description')
-                ->label('Specify Description')
-                ->placeholder('Enter additional details')
-                ->hidden(fn ($get) => $get('description') !== 'other') // Dynamically show when 'Other' is selected
-                ->helperText('Only required if "Other" is selected above'),
-    
-            TextInput::make('amount')
-                ->label('Amount')
-                ->numeric()
-                ->placeholder('Enter the amount')
-                ->required()
-                ->helperText('Enter a valid numeric value'),
-    
-            DatePicker::make('date')
-                ->label('Date')
-                ->default(now())
-                ->required()
-                ->helperText('Select or use today\'s date by default'),
+            ->schema([
+                BelongsToSelect::make('class_list_id')
+                    ->relationship('student', 'name') // 'name' is the column in ClassList you want to display
+                    ->label('Student')
+                    ->searchable()
+                    ->required()
+                    ->afterStateUpdated(function (callable $set, $state) {
+                        // Dynamically update the name field based on the selected student
+                        if ($state) {
+                            $student = \App\Models\ClassList::find($state); // Find student by class_list_id
+                            if ($student) {
+                                $set('name', $student->name); // Set the name field
+                            }
+                        }
+                    }),
 
-        ]);
-    
+                Select::make('category')
+                    ->label('Category')
+                    ->options([
+                        'Class Fund' => 'Class Fund',
+                        'Fine' => 'Fines',
+                        'Contribution' => 'Contribution',
+                        'Expense' => 'Expense',
+                    ])
+                    ->reactive()
+                    ->required(),
+
+                TextInput::make('amount')
+                    ->label('Amount')
+                    ->numeric()
+                    ->required()
+                    ->reactive()
+                    ->extraAttributes([
+                        'min' => 10,
+                        'step' => 10, 
+                    ])
+                    ->visible(fn (callable $get) => $get('category') === 'Fund' || $get('category')),
+
+                Select::make('description')
+                    ->label('Description')
+                    ->options(fn (callable $get) => match ($get('category')) {
+                        'Fine' => [
+                            'Late' => 'Late',
+                            'Absent' => 'Absent',
+                        ],
+                        'Contribution' => [
+                            'School Activity' => 'School Activity',
+                            'Donation' => 'Donation',
+                        ],
+                        default => [],
+                    })
+                    ->hidden(fn (callable $get) => !in_array($get('category'), ['Fine', 'Contribution']))
+                    ->required(fn (callable $get) => in_array($get('category'), ['Fine', 'Contribution'])),
+
+                TextInput::make('description_expense')
+                    ->label('Description')
+                    ->placeholder('Enter description.')
+                    ->hidden(fn (callable $get) => $get('category') !== 'Expense')
+                    ->required(fn (callable $get) => $get('category') === 'Expense'),
+
+                DatePicker::make('date')
+                    ->label('Date')
+                    ->default(now())
+                    ->required()
+                    ->helperText('Select or use today\'s date by default'),
+            ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-        ->columns([
-            Tables\Columns\TextColumn::make('id')
-                ->label('ID')
-                ->sortable(),
-            Tables\Columns\TextColumn::make('name')
-                ->label('Name')
-                ->sortable()
-                ->searchable(),
-            Tables\Columns\TextColumn::make('description')
-                ->label('Description')
-                ->sortable()
-                ->searchable(),
-            Tables\Columns\TextColumn::make('amount')
-                ->label('Amount')
-                ->sortable()
-                ->searchable(),
-            Tables\Columns\TextColumn::make('expenses')
-                ->label('Expenses')
-                ->sortable()
-                ->searchable(),
-            Tables\Columns\TextColumn::make('category')
-                ->label('Category')
-                ->sortable()
-                ->searchable(),
-            Tables\Columns\TextColumn::make('status')
-                ->label('Status')
-                ->sortable()
-                ->searchable(),
-            Tables\Columns\TextColumn::make('balance')
-                ->label('Balance')
-                ->sortable()
-                ->searchable(),
-            Tables\Columns\TextColumn::make('date')
-                ->label('Date')
-                ->sortable(),
-            Tables\Columns\TextColumn::make('created_at')
-                ->dateTime()
-                ->sortable()
-                ->toggleable(isToggledHiddenByDefault: true),
-            Tables\Columns\TextColumn::make('updated_at')
-                ->dateTime()
-                ->sortable()
-                ->toggleable(isToggledHiddenByDefault: true),
-        ])->defaultSort ('name')
-            ->filters([
-                //
+            ->columns([
+                TextColumn::make('student.id')->label('Student ID'),
+                TextColumn::make('student.name')->label('Student Name')->sortable()->searchable(),
+                TextColumn::make('description')->label('Description')->sortable()->searchable(),
+                TextColumn::make('amount')->label('Amount')->sortable()->searchable(),
+                TextColumn::make('category')->label('Category')->sortable()->searchable(),
+                TextColumn::make('status')->label('Status')->sortable()->searchable(),
+                TextColumn::make('date')->label('Date')->sortable(),
+                TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('updated_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
+
+
+            ->headerActions([
+                ButtonAction::make('Export PDF')
+                    ->action(function () {
+                        // Fetch all records to be included in the PDF
+                        $records = ClassFunds::all();
+            
+                        // Load the Blade view and pass the records to it
+                        $pdf = \Barryvdh\DomPDF\Facade::loadView('pdf.class_funds', compact('records'));
+            
+                        // Stream the generated PDF as a download
+                        return response()->streamDownload(
+                            fn () => print($pdf->output()),
+                            'class_funds.pdf',
+                            ['Content-Type' => 'application/pdf']
+                        );
+                    })
+                    ->icon('heroicon-o-document-text')
+                    ->color('success'),            
+            ])
+            
+            
+
+
+            ->defaultSort('name')
+            ->filters([])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\ViewAction::make(),
-
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+                    ])
+                ]);
     }
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getWidgets(): array
     {
-        return[
-            ClasssOverview::class,
+        return [
+
         ];
     }
 
@@ -155,4 +172,20 @@ class ClassFundsResource extends Resource
             'edit' => Pages\EditClassFunds::route('/{record}/edit'),
         ];
     }
+
+    public static function create(CreateRecord $page): void
+    {
+        $page->saved(function ($form) {
+            // Set the 'name' field after form is saved
+            if ($form->getState('class_list_id')) {
+                $student = \App\Models\ClassList::find($form->getState('class_list_id'));
+                if ($student) {
+                    // Set the 'name' field dynamically
+                    $form->model->name = $student->name;
+                    $form->model->save(); // Save the model with the updated 'name'
+                }
+            }
+        });
+    }
+
 }
