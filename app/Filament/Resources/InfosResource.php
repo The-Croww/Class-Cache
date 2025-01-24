@@ -2,25 +2,23 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ClassListResource\Pages;
-use App\Filament\Resources\ClassListResource\RelationManagers;
-use App\Models\ClassList;
+use App\Filament\Resources\InfosResource\Pages;
+use App\Filament\Resources\InfosResource\RelationManagers;
+use App\Models\Infos;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\TextInput;
 
-class ClassListResource extends Resource
+class InfosResource extends Resource
 {
-    protected static ?string $model = ClassList::class;
+    protected static ?string $model = Infos::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
-    protected static ?string $navigationGroup = 'Financial Records';
 
     public static function form(Form $form): Form
     {
@@ -39,21 +37,28 @@ class ClassListResource extends Resource
                 ->placeholder('Enter the name')
                 ->helperText('Provide the name for this entry'),
 
+                TextInput::make('course')
+                ->label('Course')
+                ->required()
+                ->placeholder('Enter the course')
+                ->helperText('Provide the course for this entry'),
+
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('name')
-                    ->label('Name')
-                    ->sortable()
-                    ->searchable(),
-            ])
+        ->columns([
+            Tables\Columns\TextColumn::make('id')
+                ->label('ID'),
+            Tables\Columns\TextColumn::make('name')
+                ->label('Name'),
+
+            Tables\Columns\TextColumn::make('course')
+                ->label('Course'),
+        
+        ])
             ->filters([
                 //
             ])
@@ -77,9 +82,9 @@ class ClassListResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListClassLists::route('/'),
-            'create' => Pages\CreateClassList::route('/create'),
-            'edit' => Pages\EditClassList::route('/{record}/edit'),
+            'index' => Pages\ListInfos::route('/'),
+            'create' => Pages\CreateInfos::route('/create'),
+            'edit' => Pages\EditInfos::route('/{record}/edit'),
         ];
     }
 }
