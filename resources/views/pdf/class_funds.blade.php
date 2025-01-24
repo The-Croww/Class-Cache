@@ -38,7 +38,7 @@
         <tbody>
             @foreach($records as $record)
                 <tr>
-                    <td>{{ $record->student_id }}</td>
+                    <td>{{ $record->student->id }}</td>
                     <td>{{ $record->student->name }}</td>
                     <td>{{ $record->description }}</td>
                     <td>{{ number_format($record->amount, 2) }}</td>
